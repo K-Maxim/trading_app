@@ -1,17 +1,57 @@
+from datetime import datetime
+from enum import Enum
+from typing import List, Optional
+
 from fastapi import FastAPI
+from pydantic import BaseModel, Field
+
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import ValidationError
+from fastapi.responses import JSONResponse
+
 
 app = FastAPI(
     title="Trading app"
 )
 
+# Благодаря этой функции клиент видит ошибки, происходящие на сервере, вместо "Internal server error"
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors()}),
+    )
+
 fake_users = [
     {"id": 1, "role": "admin", "name": "Bob"},
     {"id": 2, "role": "investor", "name": "John"},
     {"id": 3, "role": "trader", "name": "Matt"},
+    {"id": 4, "role": "investor", "name": "Homer", "degree": [
+        {"id": 1, "created_at": "2020-01-01T00:00:00", "type_degree": "expert"}
+    ]},
 ]
 
 
-@app.get("/users/{user_id}")
+class DegreeType(Enum):
+    newbie = "newbie"
+    expert = "expert"
+
+
+class Degree(BaseModel):
+    id: int
+    created_at: datetime
+    type_degree: DegreeType
+
+
+class User(BaseModel):
+    id: int
+    role: str
+    name: str
+    degree: Optional[List[Degree]] = []
+
+
+@app.get("/users/{user_id}", response_model=List[User])
 def get_user(user_id: int):
     return [user for user in fake_users if user["id"] == user_id]
 
@@ -22,22 +62,19 @@ fake_trades = [
 ]
 
 
-@app.get("/trades/")
-def get_trades(limit: int, offset: int):
-    return fake_trades[offset:][:limit]
+class Trade(BaseModel):
+    id: int
+    user_id: int
+    currency: str = Field(max_length=5)
+    side: str
+    price: float = Field(ge=0)  # больше или равно 0
+    amount: float
 
 
-fake_users2 = [
-    {"id": 1, "role": "admin", "name": "Bob"},
-    {"id": 2, "role": "investor", "name": "John"},
-    {"id": 3, "role": "trader", "name": "Matt"},
-]
-
-@app.post("/user/{user_id}")
-def change_user_name(user_id: int, new_name: str):
-    current_user = list(filter(lambda user: user["id"] == user_id, fake_users2))[0]
-    current_user["name"] = new_name
+@app.post("/trades")
+def add_post(trades: List[Trade]):
+    fake_trades.extend(trades)
     return {
         "status": 200,
-        "data": current_user
+        "data": fake_trades
     }
