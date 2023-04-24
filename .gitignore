@@ -6,6 +6,7 @@ bin-release/
 venv
 .idea
 __pycache__
+.env
 # Other files and folders
 .settings/
 
