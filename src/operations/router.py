@@ -23,7 +23,6 @@ def get_long_op():
     return "Много много данных, которые вычислялись 100 лет"
 
 
-
 @router.get("/")
 async def get_specific_operations(operation_type: str, session: AsyncSession = Depends(get_async_session)):
     try:
@@ -86,10 +85,10 @@ async def put_specific_operations(operation_id: int, put_operation: OperationPut
         })
 
 
-@router.delete("/")
-async def delete_specific_operations(pk: int, session: AsyncSession = Depends(get_async_session)):
+@router.delete("/{operation_id}")
+async def delete_specific_operations(operation_id: int, session: AsyncSession = Depends(get_async_session)):
     try:
-        stmt = delete(operation).where(operation.c.id == pk)
+        stmt = delete(operation).where(operation.c.id == operation_id)
         await session.execute(stmt)
         await session.commit()
         return {
