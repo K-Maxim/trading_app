@@ -11,7 +11,7 @@ import sys
 
 from src.operations.models import *
 from src.auth.model import *
-from database import metadata
+from src.database import metadata
 sys.path.append(os.path.join(sys.path[0], 'src'))
 
 # this is the Alembic Config object, which provides
